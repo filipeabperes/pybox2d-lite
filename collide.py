@@ -9,9 +9,10 @@ of this software for any purpose.
 It is provided "as is" without express or implied warranty.
 """
 
-import numpy as np
 from enum import Enum
 from typing import Optional, Sequence, List, Union, Tuple
+
+import torch
 
 from body import Body
 
@@ -36,10 +37,10 @@ class Contact:
         self.Pt = Pt
         self.Pnb = Pnb
 
-        self.position: np.ndarray = None
-        self.normal: np.ndarray = None
-        self.r1: np.ndarray = None
-        self.r2: np.ndarray = None
+        self.position: torch.Tensor = None
+        self.normal: torch.Tensor = None
+        self.r1: torch.Tensor = None
+        self.r2: torch.Tensor = None
 
         self.separation: float = None
         self.mass_normal: float = None
@@ -90,12 +91,12 @@ class Edges:
 
 
 class ClipVertex:
-    def __init__(self, v: Optional[np.ndarray] = None):
+    def __init__(self, v: Optional[torch.Tensor] = None):
         self.edges = Edges()
         self.v = v
 
 
-def clip_segment_to_line(v_in: Sequence[ClipVertex], normal: np.ndarray,
+def clip_segment_to_line(v_in: Sequence[ClipVertex], normal: torch.Tensor,
                          offset: float, clip_edge: EdgeNumbers) -> List[ClipVertex]:
     v_out = []
 
@@ -127,26 +128,26 @@ def clip_segment_to_line(v_in: Sequence[ClipVertex], normal: np.ndarray,
     return v_out
 
 
-def compute_incident_edge(h: np.ndarray, pos: np.ndarray,
-                          rot: np.ndarray, normal: np.ndarray) -> Tuple[ClipVertex, ClipVertex]:
+def compute_incident_edge(h: torch.Tensor, pos: torch.Tensor,
+                          rot: torch.Tensor, normal: torch.Tensor) -> Tuple[ClipVertex, ClipVertex]:
     c = (ClipVertex(), ClipVertex())
     # The normal is from the reference box.
     #  Convert it to the incident box's frame and flip sign.
-    rot_t = rot.transpose()
+    rot_t = rot.t()
     n = -(rot_t @ normal)
-    n_abs = np.abs(n)
+    n_abs = torch.abs(n)
 
     if n_abs[0] > n_abs[1]:
-        if np.sign(n[0]) > 0:
-            c[0].v = np.array([h[0], -h[1]], dtype=h.dtype)
+        if torch.sign(n[0]) > 0:
+            c[0].v = torch.tensor([h[0], -h[1]], dtype=h.dtype)
             c[0].edges.in_edge_2 = EdgeNumbers.EDGE_3
             c[0].edges.out_edge_2 = EdgeNumbers.EDGE_4
 
-            c[1].v = h.copy()
+            c[1].v = h#.clone()  # TODO Is this clone necessary?
             c[1].edges.in_edge_2 = EdgeNumbers.EDGE_4
             c[1].edges.out_edge_2 = EdgeNumbers.EDGE_1
         else:
-            c[0].v = np.array([-h[0], h[1]], dtype=h.dtype)
+            c[0].v = torch.tensor([-h[0], h[1]], dtype=h.dtype)
             c[0].edges.in_edge_2 = EdgeNumbers.EDGE_1
             c[0].edges.out_edge_2 = EdgeNumbers.EDGE_2
 
@@ -154,12 +155,12 @@ def compute_incident_edge(h: np.ndarray, pos: np.ndarray,
             c[1].edges.in_edge_2 = EdgeNumbers.EDGE_2
             c[1].edges.out_edge_2 = EdgeNumbers.EDGE_3
     else:
-        if np.sign(n[1]) > 0:
-            c[0].v = h.copy()
+        if torch.sign(n[1]) > 0:
+            c[0].v = h#.clone()  # TODO Is this clone necessary?
             c[0].edges.in_edge_2 = EdgeNumbers.EDGE_4
             c[0].edges.out_edge_2 = EdgeNumbers.EDGE_1
 
-            c[1].v = np.array([-h[0], h[1]], dtype=h.dtype)
+            c[1].v = torch.tensor([-h[0], h[1]], dtype=h.dtype)
             c[1].edges.in_edge_2 = EdgeNumbers.EDGE_1
             c[1].edges.out_edge_2 = EdgeNumbers.EDGE_2
         else:
@@ -167,7 +168,7 @@ def compute_incident_edge(h: np.ndarray, pos: np.ndarray,
             c[0].edges.in_edge_2 = EdgeNumbers.EDGE_2
             c[0].edges.out_edge_2 = EdgeNumbers.EDGE_3
 
-            c[1].v = np.array([h[0], -h[1]], dtype=h.dtype)
+            c[1].v = torch.tensor([h[0], -h[1]], dtype=h.dtype)
             c[1].edges.in_edge_2 = EdgeNumbers.EDGE_3
             c[1].edges.out_edge_2 = EdgeNumbers.EDGE_4
 
@@ -187,24 +188,24 @@ def collide(body_a: Body, body_b: Body) -> List[Contact]:
     rot_a = body_a.rotation_matrix()
     rot_b = body_b.rotation_matrix()
 
-    rot_a_t = rot_a.transpose()
-    rot_b_t = rot_b.transpose()
+    rot_a_t = rot_a.t()
+    rot_b_t = rot_b.t()
 
     dp = pos_b - pos_a
     d_a = rot_a_t @ dp
     d_b = rot_b_t @ dp
 
     C = rot_a_t @ rot_b
-    abs_C = np.abs(C)
-    abs_C_t = abs_C.transpose()
+    abs_C = torch.abs(C)
+    abs_C_t = abs_C.t()
 
     # box a faces
-    face_a = np.abs(d_a) - h_a - abs_C @ h_b
+    face_a = torch.abs(d_a) - h_a - abs_C @ h_b
     if face_a[0] > 0 or face_a[1] > 0:
         return []
 
     # box a faces
-    face_b = np.abs(d_b) - abs_C_t @ h_a - h_b
+    face_b = torch.abs(d_b) - abs_C_t @ h_a - h_b
     if face_b[0] > 0 or face_b[1] > 0:
         return []
 

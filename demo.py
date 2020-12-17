@@ -1,4 +1,4 @@
-import numpy as np
+import torch
 import pygame
 
 from arbiter import Arbiter
@@ -19,7 +19,7 @@ TARGET_FPS = 30
 TIMESTEP = 1.0 / TARGET_FPS
 IMPULSE_ITERATIONS = 10
 
-GRAVITY = np.array([0.0, -10.0], dtype=DTYPE)
+GRAVITY = torch.tensor([0.0, -10.0], dtype=DTYPE)
 
 
 def to_screen(vertices):
@@ -48,11 +48,11 @@ def draw_body(screen: pygame.Surface, body: Body) -> None:
     h = 0.5 * body.width
 
     v1 = x + R @ -h
-    v2 = x + R @ np.array([h[0], -h[1]])
+    v2 = x + R @ torch.tensor([h[0], -h[1]])
     v3 = x + R @ h
-    v4 = x + R @ np.array([-h[0], h[1]])
+    v4 = x + R @ torch.tensor([-h[0], h[1]])
     vertices = to_screen((v1, v2, v3, v4))
-    # print(sum((v1, v2, v3, v4)) / 4, '->', sum(np.array(vertices)) / 4)
+    # print(sum((v1, v2, v3, v4)) / 4, '->', sum(torch.tensor(vertices)) / 4)
 
     if isinstance(body, Bomb):
         color = (102, 230, 102)
@@ -114,10 +114,10 @@ def launch_bomb(world: World) -> None:
 
     bomb = Bomb([3.0, 3.0], 50.0)
     bomb.friction = 0.2
-    bomb.position = np.array([np.random.rand() * 100 - 50, 50.0])
-    bomb.rotation = np.random.rand() * 3 - 1.5
+    bomb.position = torch.tensor([torch.rand(1) * 100 - 50, 50.0])
+    bomb.rotation = torch.rand(1) * 3 - 1.5
     bomb.velocity = -1.5 * bomb.position
-    bomb.angular_velocity = np.random.rand() * 40 - 20
+    bomb.angular_velocity = torch.rand(1) * 40 - 20
 
     world.add_body(bomb)
 
@@ -171,8 +171,8 @@ def main() -> None:
                 #     world = demo_9()
 
         screen.fill((0, 0, 0))
-
         text_line = 10
+
         # display fps
         fps = clock.get_fps()
         fps_str = f'{fps:.1f} FPS'
@@ -202,11 +202,11 @@ def demo_1() -> World:
     world = World(gravity=GRAVITY, iterations=IMPULSE_ITERATIONS)
 
     body_1 = Body([100.0, 20.0])
-    body_1.position = np.array([0.0, 0.5 * body_1.width[1]])
+    body_1.position = torch.tensor([0.0, 0.5 * body_1.width[1]])
     world.add_body(body_1)
 
     body_2 = Body([5.0, 5.0], 200.0)
-    body_2.position = np.array([0.0, 40.0])
+    body_2.position = torch.tensor([0.0, 40.0])
     world.add_body(body_2)
 
     return world
@@ -216,18 +216,18 @@ def demo_2() -> World:
     world = World(gravity=GRAVITY, iterations=IMPULSE_ITERATIONS)
 
     body_1 = Body([100.0, 10.0])
-    body_1.position = np.array([0.0, 0.5 * body_1.width[1]])
+    body_1.position = torch.tensor([0.0, 0.5 * body_1.width[1]])
     body_1.friction = 0.2
     body_1.rotation = 0.0
     world.add_body(body_1)
 
     body_2 = Body([5.0, 5.0], 100.0)
-    body_2.position = np.array([45.0, 60.0])
+    body_2.position = torch.tensor([45.0, 60.0])
     body_2.friction = 0.2
     body_2.rotation = 0.0
     world.add_body(body_2)
 
-    joint = Joint(body_1, body_2, body_2.position * [0, 1])
+    joint = Joint(body_1, body_2, body_2.position * torch.tensor([0.0, 1.0]))
     world.add_joint(joint)
 
     return world
@@ -237,7 +237,7 @@ def demo_3() -> World:
     world = World(gravity=GRAVITY, iterations=IMPULSE_ITERATIONS)
 
     body_1 = Body([100.0, 1.0])
-    body_1.position = np.array([0.0, 20.0])
+    body_1.position = torch.tensor([0.0, 20.0])
     body_1.rotation = -0.25
     world.add_body(body_1)
 
@@ -245,7 +245,7 @@ def demo_3() -> World:
     for i, fric in enumerate(frictions):
         body = Body([3.0, 3.0], 25.0)
         body.friction = fric
-        body.position = np.array([-45.0 + 10.0 * i, 40.0])
+        body.position = torch.tensor([-45.0 + 10.0 * i, 40.0])
         world.add_body(body)
 
     return world
@@ -255,14 +255,14 @@ def demo_4() -> World:
     world = World(gravity=GRAVITY, iterations=IMPULSE_ITERATIONS)
 
     body_1 = Body([100.0, 10.0])
-    body_1.position = np.array([0.0, 0.5 * body_1.width[1]])
+    body_1.position = torch.tensor([0.0, 0.5 * body_1.width[1]])
     world.add_body(body_1)
 
     for i in range(8):
         body = Body([3.0, 3.0], 1.0)
         body.friction = 0.2
-        x = np.random.rand() - 0.5
-        body.position = np.array([x, 12.0 + 3.5 * i])
+        x = torch.rand(1) - 0.5
+        body.position = torch.tensor([x, 12.0 + 3.5 * i])
         world.add_body(body)
 
     return world
@@ -289,4 +289,5 @@ def demo_9() -> World:
 
 
 if __name__ == '__main__':
-    main()
+    with torch.no_grad():
+        main()

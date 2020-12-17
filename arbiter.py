@@ -9,9 +9,9 @@ of this software for any purpose.
 It is provided "as is" without express or implied warranty.
 """
 from copy import copy
-
-import numpy as np
 from typing import Sequence
+
+import torch
 
 from body import Body
 from collide import Contact, collide
@@ -50,7 +50,7 @@ class Arbiter:
 
         self.contacts = collide(self.body_1, self.body_2)
 
-        self.friction = np.sqrt(self.body_1.friction * self.body_2.friction)
+        self.friction = torch.sqrt(self.body_1.friction * self.body_2.friction)
 
     @property
     def num_contacts(self):
@@ -66,7 +66,7 @@ class Arbiter:
                     break
 
             if c_old is not None:
-                c = copy(c_new)  # TODO is this copy needed?
+                c = c_new  # TODO Is it necessary to copy(c_new)?
                 merged_contacts.append(c)
                 if WARM_STARTING:
                     c.Pn = c_old.Pn
@@ -77,7 +77,7 @@ class Arbiter:
                     c.Pt = 0.0
                     c.Pnb = 0.0
             else:
-                merged_contacts.append(copy(c_new))  # TODO is this copy needed?
+                merged_contacts.append(c_new)  # TODO Is it necessary to copy(c_new)?
 
         self.contacts = merged_contacts
 
@@ -165,11 +165,11 @@ class Arbiter:
 
                 # clamp friction
                 old_tangent_impulse = c.Pt
-                c.Pt = np.clip(old_tangent_impulse + d_Pt, -max_Pt, max_Pt)
+                c.Pt = torch.min(torch.max(old_tangent_impulse + d_Pt, -max_Pt), max_Pt)  # TODO Does this work for gradient propagation?
                 d_Pt = c.Pt - old_tangent_impulse
             else:
                 max_Pt = self.friction * d_Pn
-                d_Pt = np.clip(d_Pt, -max_Pt, max_Pt)
+                d_Pt = torch.min(torch.max(d_Pt, -max_Pt), max_Pt)  # TODO Does this work for gradient propagation?
 
             # apply contact impulses
             Pt = d_Pt * tangent
@@ -182,8 +182,8 @@ class Arbiter:
 
 
 if __name__ == '__main__':
-    b1 = Body(np.array([1, 2]))
-    b2 = Body(np.array([3, 4]))
+    b1 = Body(torch.tensor([1.0, 2.0]))
+    b2 = Body(torch.tensor([3.0, 4.0]))
     a = Arbiter(b1, b2)
     ak1 = ArbiterKey(b1, b2)
     ak2 = ArbiterKey(b2, b1)

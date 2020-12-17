@@ -10,8 +10,9 @@ It is provided "as is" without express or implied warranty.
 """
 
 
-import numpy as np
 from typing import List, Dict, Union, Sequence
+
+import torch
 
 from arbiter import Arbiter, ArbiterKey
 from body import Body
@@ -19,8 +20,8 @@ from joint import Joint
 
 
 class World:
-	def __init__(self, gravity:  Union[np.ndarray, Sequence[float]], iterations: int) -> None:
-		self.gravity = np.asarray(gravity)
+	def __init__(self, gravity:  Union[torch.Tensor, Sequence[float]], iterations: int) -> None:
+		self.gravity = torch.as_tensor(gravity)
 		self.iterations = iterations
 
 		self.clear()
@@ -88,5 +89,5 @@ class World:
 			b.position += dt * b.velocity
 			b.rotation += dt * b.angular_velocity
 
-			b.force = np.zeros(2, dtype=b.force.dtype)
+			b.force = torch.zeros(2, dtype=b.force.dtype)
 			b.torque = 0.0
