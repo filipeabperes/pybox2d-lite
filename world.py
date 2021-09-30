@@ -19,74 +19,74 @@ from joint import Joint
 
 
 class World:
-	def __init__(self, gravity:  Union[np.ndarray, Sequence[float]], iterations: int) -> None:
-		self.gravity = np.asarray(gravity)
-		self.iterations = iterations
+    def __init__(self, gravity:  Union[np.ndarray, Sequence[float]], iterations: int) -> None:
+        self.gravity = np.asarray(gravity)
+        self.iterations = iterations
 
-		self.clear()
+        self.clear()
 
-	def add_body(self, body: Body) -> None:
-		self.bodies.append(body)
+    def add_body(self, body: Body) -> None:
+        self.bodies.append(body)
 
-	def add_joint(self, joint: Joint) -> None:
-		self.joints.append(joint)
+    def add_joint(self, joint: Joint) -> None:
+        self.joints.append(joint)
 
-	def clear(self) -> None:
-		self.bodies: List[Body] = []
-		self.joints: List[Joint] = []
-		self.arbiters: Dict[ArbiterKey, Arbiter] = {}
+    def clear(self) -> None:
+        self.bodies: List[Body] = []
+        self.joints: List[Joint] = []
+        self.arbiters: Dict[ArbiterKey, Arbiter] = {}
 
-	def broadphase(self) -> None:
-		# O(n^2) broad-phase
-		for i, bi in enumerate(self.bodies):
-			for j, bj in enumerate(self.bodies[i+1:]):
-				if bi.inv_mass == 0.0 and bj.inv_mass == 0.0:
-					continue
+    def broadphase(self) -> None:
+        # O(n^2) broad-phase
+        for i, bi in enumerate(self.bodies):
+            for j, bj in enumerate(self.bodies[i+1:]):
+                if bi.inv_mass == 0.0 and bj.inv_mass == 0.0:
+                    continue
 
-				new_arb = Arbiter(bi, bj)
-				key = ArbiterKey(bi, bj)
+                new_arb = Arbiter(bi, bj)
+                key = ArbiterKey(bi, bj)
 
-				if new_arb.num_contacts > 0:
-					if key not in self.arbiters:
-						self.arbiters[key] = new_arb
-					else:
-						self.arbiters[key].update(new_arb.contacts)
-				elif key in self.arbiters:
-					self.arbiters.pop(key)
+                if new_arb.num_contacts > 0:
+                    if key not in self.arbiters:
+                        self.arbiters[key] = new_arb
+                    else:
+                        self.arbiters[key].update(new_arb.contacts)
+                elif key in self.arbiters:
+                    self.arbiters.pop(key)
 
-	def step(self, dt: float) -> None:
-		inv_dt = 1.0 / dt if dt > 0 else 0.0
+    def step(self, dt: float) -> None:
+        inv_dt = 1.0 / dt if dt > 0 else 0.0
 
-		# determine overlapping bodies and update contact points
-		self.broadphase()
+        # determine overlapping bodies and update contact points
+        self.broadphase()
 
-		# integrate forces
-		for b in self.bodies:
-			if b.inv_mass == 0:
-				continue
+        # integrate forces
+        for b in self.bodies:
+            if b.inv_mass == 0:
+                continue
 
-			b.velocity += dt * (self.gravity + b.inv_mass * b.force)
-			b.angular_velocity += dt * b.inv_I * b.torque
+            b.velocity += dt * (self.gravity + b.inv_mass * b.force)
+            b.angular_velocity += dt * b.inv_I * b.torque
 
-		# perform pre-steps
-		for arb in self.arbiters.values():
-			arb.pre_step(inv_dt)
+        # perform pre-steps
+        for arb in self.arbiters.values():
+            arb.pre_step(inv_dt)
 
-		for joint in self.joints:
-			joint.pre_step(inv_dt)
+        for joint in self.joints:
+            joint.pre_step(inv_dt)
 
-		# perform iterations
-		for _ in range(self.iterations):
-			for arb in self.arbiters.values():
-				arb.apply_impulse()
+        # perform iterations
+        for _ in range(self.iterations):
+            for arb in self.arbiters.values():
+                arb.apply_impulse()
 
-			for joint in self.joints:
-				joint.apply_impulse()
+            for joint in self.joints:
+                joint.apply_impulse()
 
-		# integrate velocities
-		for b in self.bodies:
-			b.position += dt * b.velocity
-			b.rotation += dt * b.angular_velocity
+        # integrate velocities
+        for b in self.bodies:
+            b.position += dt * b.velocity
+            b.rotation += dt * b.angular_velocity
 
-			b.force = np.zeros(2, dtype=b.force.dtype)
-			b.torque = 0.0
+            b.force = np.zeros(2, dtype=b.force.dtype)
+            b.torque = 0.0
