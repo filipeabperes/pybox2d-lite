@@ -161,8 +161,9 @@ def main() -> None:
                 # elif event.key == pygame.K_5:
                 #     world = demo_5()
                 #     cur_demo = 5
-                # elif event.key == pygame.K_6:
-                #     world = demo_6()
+                elif event.key == pygame.K_6:
+                    world = demo_6()
+                    cur_demo = 6
                 # elif event.key == pygame.K_7:
                 #     world = demo_7()
                 # elif event.key == pygame.K_8:
@@ -273,8 +274,28 @@ def demo_5() -> World:
 
 
 def demo_6() -> World:
-    pass
+    world = World(gravity=GRAVITY, iterations=IMPULSE_ITERATIONS)
 
+    Ground = Body([100.0, 10.0])
+    Ground.position = np.array([0.0, 0.5 * Ground.width[1]])
+    world.add_body(Ground)
+
+    teeter = Body([60.0, 1.25], 100.0)
+    teeter.position = np.array([0.0, 15.0])
+    world.add_body(teeter)
+
+    small = Body([2.5, 2.5], 25.0)
+    small.position = np.array([-27.5, 20.0])
+    world.add_body(small)
+    
+    big = Body([5.0, 5.0], 100.0)
+    big.position = np.array([27.5, 85.0])
+    world.add_body(big)
+
+    j = Joint(Ground, teeter, teeter.position)
+    world.add_joint(j)
+
+    return world
 
 def demo_7() -> World:
     pass
