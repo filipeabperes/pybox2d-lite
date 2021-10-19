@@ -203,7 +203,7 @@ def collide(body_a: Body, body_b: Body) -> List[Contact]:
     if face_a[0] > 0 or face_a[1] > 0:
         return []
 
-    # box a faces
+    # box b faces
     face_b = np.abs(d_b) - abs_C_t @ h_a - h_b
     if face_b[0] > 0 or face_b[1] > 0:
         return []
@@ -279,7 +279,7 @@ def collide(body_a: Body, body_b: Body) -> List[Contact]:
         incident_edge = compute_incident_edge(h_a, pos_a, rot_a, front_normal)
 
     else:
-        raise ValueError(f'Axis valus set incorrectly ({axis}).')
+        raise ValueError(f'Axis value set incorrectly ({axis}).')
 
     # clip other face with 5 box planes (1 face plane, 4 edge planes)
     #  clip to box side 1
