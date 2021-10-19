@@ -164,8 +164,9 @@ def main() -> None:
                 elif event.key == pygame.K_6:
                     world = demo_6()
                     cur_demo = 6
-                # elif event.key == pygame.K_7:
-                #     world = demo_7()
+                elif event.key == pygame.K_7:
+                    world = demo_7()
+                    cur_demo = 7
                 # elif event.key == pygame.K_8:
                 #     world = demo_8()
                 # elif event.key == pygame.K_9:
@@ -298,7 +299,45 @@ def demo_6() -> World:
     return world
 
 def demo_7() -> World:
-    pass
+    world = World(gravity=GRAVITY, iterations=IMPULSE_ITERATIONS)
+
+    Ground = Body([100.0, 10.0])
+    Ground.position = np.array([0.0, 0.5 * Ground.width[1]])
+    world.add_body(Ground)
+
+    PLANK_COUNT = 15
+    PLANK_MASS = 50.0
+    PLANK_WIDTH = 5.0
+    GAP = 1.25
+    period = PLANK_WIDTH+GAP
+    deck_length = period*PLANK_COUNT - GAP
+    deck_startx = -deck_length/2
+    joint_startx = -deck_length/2 - GAP/2
+
+    planks = []
+    for i in range(PLANK_COUNT):
+        p = Body([PLANK_WIDTH, 0.25*5], PLANK_MASS)
+        p.position = np.array([deck_startx+PLANK_WIDTH/2+period*i, 25.0])
+        planks.append(p)
+        world.add_body(p)
+
+    # Joint Tuning
+    FREQUENCY_HERTZ = 2.0
+    frequency_radians = 2.0*np.pi*FREQUENCY_HERTZ
+    DAMPING_RATIO = 0.7
+    damping_coeffcient = 2.0*PLANK_MASS*DAMPING_RATIO*frequency_radians
+    stiffness = PLANK_MASS*frequency_radians**2
+    softness = 1/(damping_coeffcient+TIMESTEP*stiffness)
+    bias_factor = TIMESTEP*stiffness/(damping_coeffcient+TIMESTEP*stiffness)
+
+    limbs = [Ground]+planks+[Ground]
+    for i,(limb1,limb2) in enumerate(zip(limbs,limbs[1:])):
+        j = Joint(limb1, limb2, np.array([joint_startx+period*i, 25.0]))
+        j.softness = softness
+        j.bias_factor = bias_factor
+        world.add_joint(j)
+
+    return world
 
 
 def demo_8() -> World:

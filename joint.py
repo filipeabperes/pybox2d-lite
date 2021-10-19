@@ -77,9 +77,8 @@ class Joint:
             self.P = np.zeros(2, dtype=self.body_1.width.dtype)
 
     def apply_impulse(self) -> None:
-        dv = (self.body_2.velocity
-              + cross(self.body_2.angular_velocity, self.r2)
-              - cross(self.body_1.angular_velocity, self.r1))
+        dv = (self.body_2.velocity + cross(self.body_2.angular_velocity, self.r2)
+            - self.body_1.velocity - cross(self.body_1.angular_velocity, self.r1))
 
         impulse = self.M @ (self.bias - dv - self.softness * self.P)
 
